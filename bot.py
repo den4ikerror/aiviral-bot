@@ -190,7 +190,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if expected_bank:
             verification_text = (
                 f"Screenshot Verification:\nBank (Monobank): {bank_msg}\nCode: {code_msg}\n\n"
-                "If both bank mention and code are found — the receipt is likely genuine. Otherwise — check the payment description or photo quality. If you don't receive a response within an hour, write here 👉@Aiviralmamager"
+                "If both bank mention and code are found — the receipt is likely genuine. Otherwise — check the payment description or photo quality. If you don't receive a response within an hour, write here 👉@Aiviralmanager"
             )
         else:
             verification_text = (
@@ -311,6 +311,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
