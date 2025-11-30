@@ -29,9 +29,9 @@ import qrcode
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID"))
-STORAGE_CHANNEL_ID = int(os.getenv("STORAGE_CHANNEL_ID"))
-PDF_PATH = os.getenv("PDF_PATH", "files/access.pdf")
+OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID", "0"))
+STORAGE_CHANNEL_ID = int(os.getenv("STORAGE_CHANNEL_ID", "0"))
+PDF_PATH = os.getenv("PDF_PATH", "files/AIViral Tutorial.pdf")
 SAVE_DIR = os.getenv("SAVE_DIR", "screenshots")
 WAIT_SECONDS = int(os.getenv("WAIT_SECONDS", "12"))
 
