@@ -224,7 +224,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Done! Thank you for your payment ❤️")
         else:
             await update.message.reply_text(
-                "Verification showed a possible mismatch. The administrator has already received the photo for manual review."
+                "Verification showed a possible mismatch. The administrator has already received the photo for manual review. If you don't receive a response within an hour, write here 👉@Aiviralmamager"
             )
 
     except Exception as e:
@@ -311,3 +311,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
