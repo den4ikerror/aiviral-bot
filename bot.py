@@ -292,9 +292,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ===================== MAIN ================================
 
 def main():
-    # Try modern Application API first (v20+). If the runtime/install yields the
-    # AttributeError seen in the traceback (Updater object has no attribute ...),
-    # fall back to legacy Updater approach.
+    # Цей блок TRY тепер є основним і єдиним!
     try:
         app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -305,54 +303,11 @@ def main():
 
         print("Bot started (Application).")
         app.run_polling()
-    except AttributeError as e:
-        logger.warning("Application build failed, falling back to Updater: %s", e)
-        # Legacy fallback using Updater. Import inside block to avoid import-time issues.
-        from telegram.ext import Updater
-
-        # wrapper to run async handlers in sync context
-        def sync_wrapper(coro):
-            def _inner(update, context):
-                try:
-                    asyncio.run(coro(update, context))
-                except RuntimeError:
-                    # If an event loop is already running, schedule the task
-                    loop = asyncio.get_event_loop()
-                    loop.create_task(coro(update, context))
-            return _inner
-
-        # Try to get appropriate filters attributes for legacy Updater
-        photo_filter = getattr(filters, "PHOTO", None) or getattr(filters, "photo", None)
-        text_filter = getattr(filters, "TEXT", None) or getattr(filters, "text", None)
-        command_filter = getattr(filters, "COMMAND", None) or getattr(filters, "command", None)
-
-        if photo_filter is None or text_filter is None or command_filter is None:
-            logger.warning("Could not resolve filters attributes; message filters may not work as expected.")
-
-        # Create Updater without 'use_context' to support environments where that kwarg is absent
-        updater = Updater(TELEGRAM_TOKEN)
-        dp = updater.dispatcher
-
-        # Register handlers (wrap async handlers to run in sync dispatcher)
-        dp.add_handler(CommandHandler("start", sync_wrapper(start)))
-        dp.add_handler(CallbackQueryHandler(sync_wrapper(button_handler)))
-        if photo_filter is not None:
-            dp.add_handler(MessageHandler(photo_filter, sync_wrapper(handle_photo)))
-        else:
-            dp.add_handler(MessageHandler(filters.PHOTO if hasattr(filters, "PHOTO") else filters.photo, sync_wrapper(handle_photo)))
-
-        if text_filter is not None and command_filter is not None:
-            dp.add_handler(MessageHandler(text_filter & ~command_filter, sync_wrapper(handle_text)))
-        else:
-            # fallback to common names
-            fallback_text = filters.TEXT if hasattr(filters, "TEXT") else filters.text
-            fallback_cmd = filters.COMMAND if hasattr(filters, "COMMAND") else filters.command
-            dp.add_handler(MessageHandler(fallback_text & ~fallback_cmd, sync_wrapper(handle_text)))
-
-        print("Bot started (Updater fallback).")
-        updater.start_polling()
-        updater.idle()
-
+        
+    except Exception as e: # Замініть на загальний Exception, щоб побачити інші помилки
+        logger.error("Bot failed to start or run: %s", e)
+        
+    # ПОВНІСТЮ ВИДАЛІТЬ або ПРОКОМЕНТУЙТЕ ВЕСЬ КОД, ЩО ЙШОВ НИЖЧЕ (з Updater)
 
 if __name__ == "__main__":
     main()
