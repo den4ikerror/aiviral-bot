@@ -37,6 +37,7 @@ WAIT_SECONDS = int(os.getenv("WAIT_SECONDS", "12"))
 
 SOL_ADDRESS = "8oF1AnnAyXpd5sKNyxQtbpVc8BsVGiL5NHzYAqwX5YV6"
 ETH_ADDRESS = "0xcd89FDc784Fa70DBe35A97544FcF2E6BEbE5d6E9"
+MONOBANK_URL = "https://send.monobank.ua/jar/7tjdex7qHm"
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
@@ -66,6 +67,7 @@ def make_qr(data: str):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💰 Pay with Crypto", callback_data="pay_crypto")],
+        [InlineKeyboardButton("🏦 Pay via Monobank", callback_data="pay_bank")],
     ]
     await update.message.reply_text(
         "🚀 Hello! I am AIViral, your personal AI assistant for creating viral content!\n\n"
@@ -138,6 +140,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             parse_mode="HTML"
         )
+    elif query.data == "pay_bank":
+        # Monobank payment flow
+        code = generate_code(user_id)
+        SESSIONS[user_id] = {"code": code, "method": "BANK"}
+
+        kb = [
+            [InlineKeyboardButton("Open Monobank", url=MONOBANK_URL)],
+        ]
+
+        await query.edit_message_text(
+            (
+                f"Your code: <b>{code}</b>\n\n"
+                "Pay using the Monobank link below. In the payment description/memo include your code.\n\n"
+                "After payment, please send a screenshot of the receipt for verification."
+            ),
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="HTML"
+        )
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -156,19 +176,27 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session = SESSIONS.get(user_id, {})
         expected_address = session.get("address")
         expected_code = session.get("code")
+        expected_bank = "monobank" if session.get("method") == "BANK" else None
 
         await update.message.reply_text("Screenshot received! Verifying...")
 
-        result = verify_screenshot(path, expected_address, expected_code)
+        result = verify_screenshot(path, expected_address, expected_code, expected_bank)
 
         # Compose verification message
         addr_msg = "found" if result["address_found"] else "NOT found"
         code_msg = "found" if result["code_found"] else "NOT found"
+        bank_msg = "found" if result.get("bank_found") else "NOT found"
 
-        verification_text = (
-            f"Screenshot Verification:\nAddress: {addr_msg}\nCode: {code_msg}\n\n"
-            "If both fields are found—the screenshot is likely genuine. Otherwise—please check the memo/tag correctness or photo quality."
-        )
+        if expected_bank:
+            verification_text = (
+                f"Screenshot Verification:\nBank (Monobank): {bank_msg}\nCode: {code_msg}\n\n"
+                "If both bank mention and code are found — the receipt is likely genuine. Otherwise — check the payment description or photo quality."
+            )
+        else:
+            verification_text = (
+                f"Screenshot Verification:\nAddress: {addr_msg}\nCode: {code_msg}\n\n"
+                "If both fields are found — the screenshot is likely genuine. Otherwise — check the memo/tag correctness or photo quality."
+            )
 
         await update.message.reply_text(verification_text)
 
@@ -182,7 +210,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         # If verification positive, deliver PDF after waiting, else still inform user
-        if result["address_found"] and result["code_found"]:
+        if session.get("method") == "BANK":
+            success = result.get("bank_found") and result.get("code_found")
+        else:
+            success = result.get("address_found") and result.get("code_found")
+
+        if success:
             await asyncio.sleep(WAIT_SECONDS)
             await context.bot.send_document(
                 chat_id=user_id,
@@ -190,7 +223,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await update.message.reply_text("Done! Thank you for your payment ❤️")
         else:
-            await update.message.reply_text("Verification showed a possible mismatch. The administrator has already received the photo for manual review.")
+            await update.message.reply_text(
+                "Verification showed a possible mismatch. The administrator has already received the photo for manual review."
+            )
 
     except Exception as e:
         await context.bot.send_message(
@@ -213,10 +248,10 @@ def preprocess_for_ocr(path: str) -> Image.Image:
     return sharpened
 
 
-def verify_screenshot(path: str, expected_address: str = None, expected_code: str = None) -> dict:
-    """Run OCR on the image and check whether expected address and code appear.
+def verify_screenshot(path: str, expected_address: str = None, expected_code: str = None, expected_bank: str = None) -> dict:
+    """Run OCR on the image and check whether expected address, code or bank mention appear.
 
-    Returns a dict: {"address_found": bool, "code_found": bool, "text": str}
+    Returns a dict: {"address_found": bool, "code_found": bool, "bank_found": bool, "text": str}
     """
     try:
         img = preprocess_for_ocr(path)
@@ -225,6 +260,7 @@ def verify_screenshot(path: str, expected_address: str = None, expected_code: st
 
         address_found = False
         code_found = False
+        bank_found = False
 
         if expected_address:
             # check raw address and allow variations (with or without protocol prefix)
@@ -235,10 +271,18 @@ def verify_screenshot(path: str, expected_address: str = None, expected_code: st
             if expected_code.lower() in lowered:
                 code_found = True
 
-        return {"address_found": address_found, "code_found": code_found, "text": text}
+        if expected_bank:
+            # check common keywords for Monobank receipts
+            bank_keywords = ["monobank", "mono", "monobank.ua"]
+            for k in bank_keywords:
+                if k in lowered:
+                    bank_found = True
+                    break
+
+        return {"address_found": address_found, "code_found": code_found, "bank_found": bank_found, "text": text}
     except Exception as e:
         logger.exception("OCR verification failed")
-        return {"address_found": False, "code_found": False, "text": ""}
+        return {"address_found": False, "code_found": False, "bank_found": False, "text": ""}
 
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
