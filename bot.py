@@ -195,7 +195,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             verification_text = (
                 f"Screenshot Verification:\nAddress: {addr_msg}\nCode: {code_msg}\n\n"
-                "If both fields are found — the screenshot is likely genuine. Otherwise — check the memo/tag correctness or photo quality. If you don't receive a response within an hour, write here 👉@Aiviralmamager"
+                "If both fields are found — the screenshot is likely genuine. Otherwise — check the memo/tag correctness or photo quality. If you don't receive a response within an hour, write here 👉@Aiviralmanager"
             )
 
         await update.message.reply_text(verification_text)
@@ -224,7 +224,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Done! Thank you for your payment ❤️")
         else:
             await update.message.reply_text(
-                "Verification showed a possible mismatch. The administrator has already received the photo for manual review. If you don't receive a response within an hour, write here 👉@Aiviralmamager"
+                "Verification showed a possible mismatch. The administrator has already received the photo for manual review. If you don't receive a response within an hour, write here 👉@Aiviralmanager"
             )
 
     except Exception as e:
@@ -232,7 +232,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=OWNER_CHAT_ID,
             text=f"[ERROR] {repr(e)}"
         )
-        await update.message.reply_text("An error occurred, but the administrator has been notified. If you don't receive a response within an hour, write here 👉@Aiviralmamager")
+        await update.message.reply_text("An error occurred, but the administrator has been notified. If you don't receive a response within an hour, write here 👉@Aiviralmanager")
 
 
 def preprocess_for_ocr(path: str) -> Image.Image:
@@ -311,5 +311,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
